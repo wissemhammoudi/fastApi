@@ -49,7 +49,7 @@ async def get_model(model_name: ModelName):
 @app.get("/files/{file_path:path}")
 async def read_file(file_path: str):
     return {"file_path": file_path}
-
+test
 
 # Run the app using uvicorn programmatically
 if __name__ == "__main__":
