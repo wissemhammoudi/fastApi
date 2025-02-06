@@ -17,13 +17,13 @@ class QuestionBase(BaseModel):
 # SQLAlchemy model for questions table
 class Question(Base):
     __tablename__ = "questions"
-    id = Column(Integer, primary_key=True, index=True)  # Primary key column
+    id = Column(Integer, primary_key=True)  # Primary key column
     question_text = Column(String, index=True)  # Question text content
 
 # SQLAlchemy model for choices table 
 class Choice(Base):
     __tablename__ = "choices"
-    id = Column(Integer, primary_key=True, index=True)  # Primary key column
+    id = Column(Integer, primary_key=True)  # Primary key column
     choice_text = Column(String, index=True)  # Choice text content
     is_correct = Column(Boolean, default=False)  # Indicates if choice is correct
     question_id = Column(Integer, ForeignKey("questions.id"))  # Foreign key to questions table

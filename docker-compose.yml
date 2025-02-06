@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: quizapplication
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin 
+      POSTGRES_PASSWORD: admin
     ports:
       - "5432:5432"
     networks:
@@ -18,7 +18,7 @@ services:
         aliases:
           - postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - /var/lib/postgresql/data  # Simple volume without named declaration
 
   quizapplication:
     build: .
@@ -26,11 +26,9 @@ services:
       - "8000:8000"
     depends_on:
       - postgres
+    volumes:
+      - .:/app
     networks:
       bridge:
         aliases:
           - quizapplication
-
-
-volumes:
-  postgres_data:
