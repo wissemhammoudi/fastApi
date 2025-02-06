@@ -1,55 +1,50 @@
-from fastapi import FastAPI
+from fastapi import FastAPI ,HTTPException, Depends
 import uvicorn  # Import uvicorn
-from enum import Enum
-
-class ModelName(str, Enum):
-    alexnet = "alexnet"
-    resnet = "resnet"
-    lenet = "lenet"
-
-
-
-
+from pydantic import BaseModel
+from typing import List ,Annotated
+from database import SessionLocal, engine
+from sqlalchemy.orm import Session
+import models 
 #FastAPI is a Python class that provides all the functionality for your API.
 app = FastAPI()
+models.Base.metadata.create_all(bind=engine)
 
-@app.get("/")
-async def hello_world():
-    return {"hello": "world"}
-#path parameter itemid will be passed to the function as the argument
-@app.get("/items/{item_id}")
-async def read_item(item_id):
-    return {"item_id": item_id}
-#path paramaters with type so we should respect this type or we will get an error
-@app.get("/items/{item_id}")
-async def read_item(item_id: int):
-    return {"item_id": item_id}
-#order matter the path operation will be executed in the order they are defined
-@app.get("/users/me")
-async def read_user_me():
-    return {"user_id": "the current user"}
+class ChoiceBase(BaseModel):
+    choice_text: str
+    is_correct: bool
+class QuestionBase(BaseModel):
+    question_text: str
+    choices: List[ChoiceBase]
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+db_dependency = Annotated[Session, Depends(get_db)]
 
-
-@app.get("/users/{user_id}")
-async def read_user(user_id: str):
-    return {"user_id": user_id}
-#predefined values u can use the standard python enum
-@app.get("/models/{model_name}")
-async def get_model(model_name: ModelName):
-    if model_name is ModelName.alexnet:
-        return {"model_name": model_name, "message": "Deep Learning FTW!"}
-
-    if model_name.value == "lenet":
-        return {"model_name": model_name, "message": "LeCNN all the images"}
-
-    return {"model_name": model_name, "message": "Have some residuals"}
-
-
-#openAPI could support the path parameter with the type path
-@app.get("/files/{file_path:path}")
-async def read_file(file_path: str):
-    return {"file_path": file_path}
-test
+@app.post("/questions/")
+async def create_question(question: QuestionBase, db: db_dependency):
+    db_question = models.Question(question_text=question.question_text)
+    db.add(db_question)
+    db.commit()
+    db.refresh(db_question)
+    for choice in question.choices:
+        db_choice = models.Choice(choice_text=choice.choice_text, is_correct=choice.is_correct, question_id=db_question.id)
+        db.add(db_choice)
+    db.commit()
+@app.get("/questions/{question_id}")
+async def get_questions(question_id: int, db: db_dependency):
+    result =   db.query(models.Question).filter(models.Question.id == question_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return result
+@app.get("/choices/{question_id}")
+async def get_choices(question_id: int, db: db_dependency):
+    result = db.query(models.Choice).filter(models.Choice.question_id == question_id).all()
+    if not result:
+        raise HTTPException(status_code=404, detail="Choice not found")
+    return result
 
 # Run the app using uvicorn programmatically
 if __name__ == "__main__":
